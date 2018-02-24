@@ -20,16 +20,16 @@ On an Event page that has a Player Touch trigger, create a Comment and enter it 
 Parameters are separated by a space.
 
 The following parameters are supported. Each one is immediate**ly followed by a number to specify the distance in squares/tiles that the Event should fire.**
-*** **r#** - Radius (Any square within # of Event)
+* **r#** - Radius (Any square within # of Event)
 * **x#** - X-Axis (Any square within # of Event on the X-Axis [left/right])
 * **y#** - Y-Axis (Any square within # of Event on the Y-Axis [up/down])
 * **s#** - Switch Binding (Will turn ON the specified Switch ID and not fire again while the Switch is on)
 
 These can also be specified in the parameters to indicate which modes of travel this event will fire for. If you specify none then the Player Touch will always trigger.
-* walk - Player Touch will trigger if you are walking
-* boat - Player Touch will trigger if you are on your boat
-* ship - Player Touch will trigger if you are on your ship
-* airship - Player Touch will trigger if you are on your airship
+* **walk** - Player Touch will trigger if you are walking
+* **boat** - Player Touch will trigger if you are on your boat
+* **ship** - Player Touch will trigger if you are on your ship
+* **airship** - Player Touch will trigger if you are on your airship
 
 Examples:
 

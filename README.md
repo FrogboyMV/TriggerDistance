@@ -78,5 +78,5 @@ Credit Frogboy in your work.
 
 ## Changelog
 
-Version 1.1 - Initial Release
-Version 1.2 - Added ranged Event Touch Triggers.  Bug fix.  More Aliasing.  Rectangular cover when specifying both x# and y#.
+* Version 1.1 - Initial Release
+* Version 1.2 - Added ranged Event Touch Triggers.  Bug fix.  More Aliasing.  Rectangular cover when specifying both x# and y#.

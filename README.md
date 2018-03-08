@@ -4,6 +4,7 @@
 
 This plugin allows you to set up Player Touch activation that covers an area or line of tiles around it. It is mainly used to avoid duplicating the same Event multiple times in order to cover more than one square. By specifying your parameters in a comment on an Event page, the Player Touch Trigger can be fired when your Player is at a specified distance from the Event and/or on a certain axis. I've also added functionality to list specific modes of travel that will trigger an event. Now you can fly your airship to a floating island but not walk or sail into it from the ground. Yay!
 
+This plugin now also supports Event Touch triggers at a distance.  A moving event with an Event Touch trigger will activate if it steps within range of the Player.
 
 ## Features
 * Adds the ability to specify which modes of travel will activate a Player Touch Trigger.
@@ -24,6 +25,9 @@ The following parameters are supported. Each one is immediate**ly followed by a 
 * **x#** - X-Axis (Any square within # of Event on the X-Axis [left/right])
 * **y#** - Y-Axis (Any square within # of Event on the Y-Axis [up/down])
 * **s#** - Switch Binding (Will turn ON the specified Switch ID and not fire again while the Switch is on)
+* **combo** - This tells the event to look for both Player and Event Touch conditions.
+
+If both x# and y# are specified, the trigger range will form a square or rectangular area as opposed to just covering the two axis.
 
 These can also be specified in the parameters to indicate which modes of travel this event will fire for. If you specify none then the Player Touch will always trigger.
 * **walk** - Player Touch will trigger if you are walking
@@ -48,6 +52,11 @@ Radius: **<TriggerDistance: walk r3>**
 
 ![Radius](img/snap3.png)
 
+Rectangle: **<TriggerDistance: x4 y2>**
+###### Will cover an area that spans 4 tiles along the x-axis and 2 tiles along the y-axis.
+
+![Rectangle](img/snap4.png)
+
 Edge Transfer: **<TriggerDistance: x999>**
 ###### Will cover the the entire edge of the top or bottom of a map. It doesn't have to be the top or bottom edge but that's what it is typically used for. The number is set purposely large to cover any size map. Fires for all modes of travel.
 
@@ -69,4 +78,5 @@ Credit Frogboy in your work.
 
 ## Changelog
 
-Version 1.01 - Initial Release
+Version 1.1 - Initial Release
+Version 1.2 - Added ranged Event Touch Triggers.  Bug fix.  More Aliasing.  Rectangular cover when specifying both x# and y#.

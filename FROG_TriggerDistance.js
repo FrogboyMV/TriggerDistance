@@ -3,13 +3,19 @@
 // FrogTriggerDistance.js
 //=============================================================================
 
+var Imported = Imported || {};
+Imported.FROG_TriggerDistance = true;
+
+var FROG = FROG || {};
+FROG.TriggerDistance = FROG.TriggerDistance || {};
+
 //=============================================================================
 /*:
- * @plugindesc v1.1 Trigger Events at a distance based on Radius or X/Y Axis
+ * @plugindesc v1.2 Trigger Events at a distance based on Radius or X/Y Axis
  * @author Frogboy
  *
  * @help
- * TriggerDistance v1.1
+ * TriggerDistance v1.2
  * Author Frogboy
  *
  * ============================================================================
@@ -23,6 +29,10 @@
  * axis.  I've also added functionality to list specific modes
  * of travel that will trigger an event.  Now you can fly your airship to a
  * floating island but not walk or sail into it from the ground.  Yay!
+ *
+ * This plugin now also supports Event Touch triggers at a distance.  A moving
+ * event with an Event Touch trigger will activate if it steps within range of
+ * the Player.
  *
  * ============================================================================
  * How to Use
@@ -39,6 +49,11 @@
  *    y#      - Y-Axis (Any square within # of Event on the Y-Axis [up/down])
  *    s#      - Switch Binding (Will turn ON the specified Switch ID and not
  *              fire again while the Switch is on)
+ *    combo   - This tells the event to look for both Player and Event Touch
+ *              conditions.
+ *
+ * If both x# and y# are specified, the trigger range will form a square or
+ * rectangular area as opposed to just covering the two axis.
  *
  * These can also be specified in the parameters to indicate which modes of
  * travel this event will fire for.  If you specify none then an Event Touch
@@ -75,13 +90,23 @@
  *          ###
  *           #
  *
- *        <TriggerDistance: x999>
+ *    Rectangle
+ *    <TriggerDistance: x4 y2>
+ *        Will cover an area that spans 4 tiles along the x-axis and 2 tiles
+ *        along the y-axis.
+ *        #########
+ *        #########
+ *        ####E####
+ *        #########
+ *        #########
+ *
+ *    <TriggerDistance: x999>
  *        Will cover the the entire edge of the top or bottom of a map.
  *        It doesn't have to be the top or bottom edge but that's what it is
  *        typically used for.  The number is set purposely large to cover any
  *        size map.
  *
- *        <TriggerDistance: y999>
+ *    <TriggerDistance: y999>
  *        Will cover the the entire edge of the left or right of a map.
  *        It doesn't have to be the left or right edge but that's what it is
  *        typically used for.  The number is set purposely large to cover any
@@ -98,7 +123,7 @@
  *          ###
  *           #
  *
- *    Event Player Touch only fires when you are in your airship
+ *    Touch only fires when you are in your airship
  *    <TriggerDistance: airship>
  *        No radius, x or y specified so this only covers the event tile
  *           E
@@ -126,18 +151,21 @@
  * ============================================================================
  *
  * Version 1.0 - Initial release
- * Version 1.1 - Parameters now use Comments instead of Note Tag.  Because I
- *     only ever gave this to one person, I broke backwards compatability.
+ * Version 1.1 - Parameters now use Comments instead of Note Tag.
+ * Version 1.2 - Added ranged Event Touch Triggers. Bug fix. More Aliasing.
+ *               Rectangular cover when specifying both x# and y#.
 */
 //=============================================================================
 
 (function() {
-	var aliasGameEventSetupPageSettings = Game_Event.prototype.setupPageSettings;
+    // Setup Page Settings.  Add _triggerDistance property.
+    FROG.TriggerDistance.GameEventSetupPageSettings = Game_Event.prototype.setupPageSettings;
 	Game_Event.prototype.setupPageSettings = function() {
-		aliasGameEventSetupPageSettings.call(this);
+        FROG.TriggerDistance.GameEventSetupPageSettings.call(this);
 		this._triggerDistance = "";
 		var page = this.page();
-		for (var i=0; i<page.list.length; i++) {
+
+		for (var i in page.list) {
 			if (page.list[i].code == 108) {
 				var params = page.list[i].parameters[0];
 				var triggerDistance = params.match(/<TriggerDistance:(.*)>/i);
@@ -147,118 +175,28 @@
 				}
 			}
 		}
-	};
+	}
 
-	Game_Player.prototype.startMapEvent = function(x, y, triggers, normal) {
-		if (!$gameMap.isEventRunning()) {
-			$gameMap.eventsXy(x, y).forEach(function(event) {
-				if (event.isTriggerIn(triggers)) {
-					event.start();
-				}
-			});
-		}
-	};
+    // Exception added, otherwise solid objects would require touch from a tile away.
+    Game_Player.prototype.startMapEvent = function(x, y, triggers, normal) {
+        if (!$gameMap.isEventRunning()) {
+            $gameMap.eventsXy(x, y).forEach(function(event) {
+                if (event.isTriggerIn(triggers) && (event.isNormalPriority() === normal || event._triggerDistance)) {
+                    event.start();
+                }
+            });
+        }
+    }
 
+    // Check for Player Touch Trigger Distance
+    FROG.TriggerDistance.GameMapEventXy = Game_Map.prototype.eventsXy;
 	Game_Map.prototype.eventsXy = function(x, y) {
-		var return_events = [];
-		for (var i=0; i<this.events().length; i++) {
+		var return_events = FROG.TriggerDistance.GameMapEventXy.call(this, x, y);
+
+		for (var i in this.events()) {
 			var event = this.events()[i];
-			if (event._triggerDistance && event._trigger === 1) {
-				var tdx = -1;
-				var tdy = -1;
-				var tdr = -1;
-				var tdSwitch = 0;
-				var bOk = false;
-				var walk = false;
-				var boat = false;
-				var ship = false;
-				var airship = false;
-				var vehicle = $gamePlayer._vehicleType;
-				var arr = (event._triggerDistance.includes(" "))
-							? event._triggerDistance.split(' ')
-							: [event._triggerDistance];
-
-				for (var j=0; j<arr.length; j++) {
-					if (arr[j].trim() != "") {
-						if (arr[j].toLowerCase().trim() == "walk") {
-							walk = true;
-						}
-						else if (arr[j].toLowerCase().trim() == "boat") {
-							boat = true;
-						}
-						else if (arr[j].toLowerCase().trim() == "ship") {
-							ship = true;
-						}
-						else if (arr[j].toLowerCase().trim() == "airship") {
-							airship = true;
-						}
-						else {
-							switch (arr[j].charAt(0).toLowerCase())
-							{
-								case 'r':
-									tdr = parseInt(arr[j].substr(1) || -1);
-									bOk = true;
-									break;
-								case 'x':
-									tdx = parseInt(arr[j].substr(1) || -1);
-									bOk = true;
-									break;
-								case 'y':
-									tdy = parseInt(arr[j].substr(1) || -1);
-									bOk = true;
-									break;
-								case 's':
-									tdSwitch = parseInt(arr[j].substr(1) || 0);
-									break;
-							}
-						}
-					}
-				}
-
-				// If none specified then all apply
-				if (walk == false && boat == false && ship == false && airship == false) {
-					walk = true;
-					boat = true;
-					ship = true;
-					airship = true;
-				}
-
-				// If no Trigger Distance specified, assume Radius zero
-				if (bOk == false) {
-					tdr = 0;
-				};
-
-				// Make sure travel mode is valid
-				if (((walk == true && vehicle == "walk") || (boat == true && vehicle == "boat") ||
-					(ship == true && vehicle == "ship") || (airship == true && vehicle == "airship")) &&
-					(tdSwitch < 0 || !$gameSwitches.value(tdSwitch)))
-				{
-					var distance = Math.abs(event.deltaXFrom(x)) + Math.abs(event.deltaYFrom(y));
-
-					// Check Radius Trigger
-					if (tdr > -1 && distance <= tdr) {
-						if (tdSwitch > 0) {
-							$gameSwitches.setValue(tdSwitch, true);
-						}
-						return_events.push(event);
-					}
-
-					// Check X-Axis Trigger
-					if (tdx > -1 && distance <= tdx && y === event.y) {
-						if (tdSwitch > 0) {
-							$gameSwitches.setValue(tdSwitch, true);
-						}
-						return_events.push(event);
-					}
-
-					// Check Y-Axis Trigger
-					if (tdy > -1 && distance <= tdy && x === event.x) {
-						if (tdSwitch > 0) {
-							$gameSwitches.setValue(tdSwitch, true);
-						}
-						return_events.push(event);
-					}
-				}
+			if (event._triggerDistance && (event._trigger === 1 || (event._triggerDistance.indexOf("combo") > -1 && event._trigger === 2))) {
+                return_events = return_events.concat(FROG.TriggerDistance.checkTriggerDistance(event, x, y));
 			}
 			else if (event._x == x && event._y == y) {
 				if (!$gamePlayer.isInAirship()) {
@@ -268,9 +206,136 @@
 		}
 
 		return return_events;
-	};
+	}
 
+    // Disable Airship restriction on activating events
 	Game_Player.prototype.canStartLocalEvents = function() {
 		return true;
-	};
+	}
+
+    // Check for Event Touch Trigger Distance but wait until the event stops moving to start it
+    FROG.TriggerDistance.GameCharacterBaseMoveStraight = Game_CharacterBase.prototype.moveStraight;
+    Game_CharacterBase.prototype.moveStraight = function (d) {
+        FROG.TriggerDistance.GameCharacterBaseMoveStraight.call(this, d);
+
+        if (this._eventId && this.isMovementSucceeded() && this._triggerDistance &&
+            (this._trigger === 2 || (this._triggerDistance.indexOf("combo") > -1 && this._trigger === 1)))
+        {
+            var return_events = FROG.TriggerDistance.checkTriggerDistance(this, $gamePlayer._x, $gamePlayer._y);
+            for (var i in return_events) {
+                return_events[i]._triggerStart = true;
+            }
+        }
+    }
+
+    // When the event stops moving, start the Event Touch activation
+    FROG.TriggerDistance.GameEventUpdateStop = Game_Event.prototype.updateStop;
+    Game_Event.prototype.updateStop = function () {
+        FROG.TriggerDistance.GameEventUpdateStop.call(this);
+        if (!this.isMoving() && this._triggerStart) {
+            this._triggerStart = false;
+            this.start();
+        }
+    }
+
+    /** Returns events that are within the range of the Trigger Distance
+     * @param {object} event - Game_Event object (required)
+     * @param {number} x - X coordinate to check distance (required)
+     * @param {number} y - Y coordinate to check distance (required)
+     * @returns {array} Returns an array of events that fall within the specified distance
+     */
+    FROG.TriggerDistance.checkTriggerDistance = function (event, x, y) {
+        var return_events = [];
+        var tdx = -1;
+        var tdy = -1;
+        var tdr = -1;
+        var tdSwitch = 0;
+        var bOk = false;
+        var vehicle = $gamePlayer._vehicleType;
+        var arr = (event._triggerDistance.includes(" ")) ?
+            event._triggerDistance.toLowerCase().split(' ') :
+            [event._triggerDistance.toLowerCase()];
+        var block = (arr.indexOf("block") > -1);
+        var walk = (arr.indexOf("walk") > -1);
+        var boat = (arr.indexOf("boat") > -1);
+        var ship = (arr.indexOf("ship") > -1);
+        var airship = (arr.indexOf("airship") > -1);
+
+        for (var j in arr) {
+            var token = arr[j].trim();
+
+            if (token != "" && ["walk", "boat", "ship", "airship"].indexOf(token) === -1) {
+                switch (token.charAt(0))
+                {
+                    case 'r':
+                        tdr = parseInt(token.substr(1) || -1);
+                        bOk = true;
+                        break;
+                    case 'x':
+                        tdx = parseInt(token.substr(1) || -1);
+                        bOk = true;
+                        break;
+                    case 'y':
+                        tdy = parseInt(token.substr(1) || -1);
+                        bOk = true;
+                        break;
+                    case 's':
+                        tdSwitch = parseInt(token.substr(1) || 0);
+                        break;
+                }
+            }
+        }
+
+        // If none specified then all apply
+        if (!walk && !boat && !ship && !airship) {
+            walk = boat = ship = airship = true;
+        }
+
+        // If no Trigger Distance specified, assume Radius zero
+        if (bOk == false) {
+            tdr = 0;
+        }
+
+        // Make sure travel mode is valid
+        if (((walk == true && vehicle == "walk") || (boat == true && vehicle == "boat") ||
+            (ship == true && vehicle == "ship") || (airship == true && vehicle == "airship")) &&
+            (tdSwitch < 0 || !$gameSwitches.value(tdSwitch)))
+        {
+            var distance = Math.abs(event.deltaXFrom(x)) + Math.abs(event.deltaYFrom(y));
+
+            // Check Radius Trigger
+            if (tdr > -1 && distance <= tdr) {
+                if (tdSwitch > 0) {
+                    $gameSwitches.setValue(tdSwitch, true);
+                }
+                return_events.push(event);
+            }
+
+            // If both x and y are specified, the trigger distance will cover a square or rectangle
+            if (tdx > -1 && tdy > -1) {
+                if (Math.abs(event.deltaXFrom(x)) <= tdx && Math.abs(event.deltaYFrom(y)) <= tdy) {
+                    return_events.push(event);
+                }
+            }
+            else {
+                // Check X-Axis Trigger
+                if (tdx > -1 && distance <= tdx && y === event.y) {
+                    if (tdSwitch > 0) {
+                        $gameSwitches.setValue(tdSwitch, true);
+                    }
+                    return_events.push(event);
+                }
+
+                // Check Y-Axis Trigger
+                if (tdy > -1 && distance <= tdy && x === event.x) {
+                    if (tdSwitch > 0) {
+                        $gameSwitches.setValue(tdSwitch, true);
+                    }
+                    return_events.push(event);
+                }
+            }
+        }
+
+        return return_events;
+    }
 })();

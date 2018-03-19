@@ -11,11 +11,11 @@ FROG.TriggerDistance = FROG.TriggerDistance || {};
 
 //=============================================================================
 /*:
- * @plugindesc v1.2 Trigger Events at a distance based on Radius or X/Y Axis
+ * @plugindesc v1.21 Trigger Events at a distance based on Radius or X/Y Axis
  * @author Frogboy
  *
  * @help
- * TriggerDistance v1.2
+ * TriggerDistance v1.21
  * Author Frogboy
  *
  * ============================================================================
@@ -150,10 +150,12 @@ FROG.TriggerDistance = FROG.TriggerDistance || {};
  * Changelog
  * ============================================================================
  *
- * Version 1.0 - Initial release
- * Version 1.1 - Parameters now use Comments instead of Note Tag.
- * Version 1.2 - Added ranged Event Touch Triggers. Bug fix. More Aliasing.
- *               Rectangular cover when specifying both x# and y#.
+ * Version 1.0  - Initial release
+ * Version 1.1  - Parameters now use Comments instead of Note Tag.
+ * Version 1.2  - Added ranged Event Touch Triggers. Bug fix. More Aliasing.
+ *                Rectangular cover when specifying both x# and y#.
+ * Version 1.21 - Bug fix
+ *
 */
 //=============================================================================
 
@@ -163,9 +165,9 @@ FROG.TriggerDistance = FROG.TriggerDistance || {};
 	Game_Event.prototype.setupPageSettings = function() {
         FROG.TriggerDistance.GameEventSetupPageSettings.call(this);
 		this._triggerDistance = "";
-		var page = this.page();
+        var page = this.page();
 
-		for (var i in page.list) {
+        for (var i=0; i<page.list.length; i++) {
 			if (page.list[i].code == 108) {
 				var params = page.list[i].parameters[0];
 				var triggerDistance = params.match(/<TriggerDistance:(.*)>/i);
@@ -193,7 +195,7 @@ FROG.TriggerDistance = FROG.TriggerDistance || {};
 	Game_Map.prototype.eventsXy = function(x, y) {
 		var return_events = FROG.TriggerDistance.GameMapEventXy.call(this, x, y);
 
-		for (var i in this.events()) {
+        for (var i=0; i<this.events().length; i++) {
 			var event = this.events()[i];
 			if (event._triggerDistance && (event._trigger === 1 || (event._triggerDistance.indexOf("combo") > -1 && event._trigger === 2))) {
                 return_events = return_events.concat(FROG.TriggerDistance.checkTriggerDistance(event, x, y));
@@ -222,7 +224,7 @@ FROG.TriggerDistance = FROG.TriggerDistance || {};
             (this._trigger === 2 || (this._triggerDistance.indexOf("combo") > -1 && this._trigger === 1)))
         {
             var return_events = FROG.TriggerDistance.checkTriggerDistance(this, $gamePlayer._x, $gamePlayer._y);
-            for (var i in return_events) {
+            for (var i=0; i<return_events.length; i++) {
                 return_events[i]._triggerStart = true;
             }
         }
@@ -261,7 +263,7 @@ FROG.TriggerDistance = FROG.TriggerDistance || {};
         var ship = (arr.indexOf("ship") > -1);
         var airship = (arr.indexOf("airship") > -1);
 
-        for (var j in arr) {
+        for (var j=0; j<arr.length; j++) {
             var token = arr[j].trim();
 
             if (token != "" && ["walk", "boat", "ship", "airship"].indexOf(token) === -1) {

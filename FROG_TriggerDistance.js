@@ -192,8 +192,10 @@ FROG.TriggerDistance = FROG.TriggerDistance || {};
 
     // Check for Player Touch Trigger Distance
     FROG.TriggerDistance.GameMapEventXy = Game_Map.prototype.eventsXy;
-	Game_Map.prototype.eventsXy = function(x, y) {
-		var return_events = FROG.TriggerDistance.GameMapEventXy.call(this, x, y);
+    Game_Map.prototype.eventsXy = function(x, y) {
+        var return_events = !$gamePlayer.isInAirship()
+            ? FROG.TriggerDistance.GameMapEventXy.call(this, x, y)
+            : [];
 
         for (var i=0; i<this.events().length; i++) {
 			var event = this.events()[i];
